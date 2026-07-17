@@ -89,12 +89,13 @@ data "aws_iam_policy_document" "github_actions_trust" {
     }
 
     # Scope to this org/repo across any ref (branch, tag, PR).
-    # The sub claim already encodes the owner, so this single condition is
-    # sufficient — no separate repository_owner check needed.
+    # The pattern uses wildcards after org and repo names to handle both the
+    # standard sub format and the GitHub Enterprise format that appends numeric
+    # IDs (e.g. repo:org@57132570/repo@1302507577:ref:refs/heads/main).
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:*"]
+      values   = ["repo:${var.github_org}*/${var.github_repo}*:*"]
     }
   }
 }
