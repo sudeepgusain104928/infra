@@ -43,6 +43,9 @@ permissions:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  # Required until aws-actions/configure-aws-credentials ships a Node 24 build.
+  # See: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   # ════════════════════════════════════════════════════════════════════════════
@@ -55,6 +58,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check prerequisites
+        run: |
+          if [ -z "${{ vars.OIDC_ROLE_ARN }}" ]; then
+            echo "::error::OIDC_ROLE_ARN repository variable is not set."
+            echo "::error::Run: cd oidc && terraform init && terraform apply"
+            echo "::error::Then set OIDC_ROLE_ARN in Settings → Secrets and variables → Actions → Variables"
+            exit 1
+          fi
+          echo "::notice::OIDC_ROLE_ARN = ${{ vars.OIDC_ROLE_ARN }}"
+
       - name: Configure AWS credentials via OIDC
         id: aws-auth
         uses: aws-actions/configure-aws-credentials@v4
