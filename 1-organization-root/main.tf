@@ -35,22 +35,14 @@ variable "spoke_accounts" {
       email       = "aws+spoke-dev@example.com"
       environment = "development"
     }
-    staging = {
-      email       = "aws+spoke-staging@example.com"
-      environment = "staging"
-    }
-    prod = {
-      email       = "aws+spoke-prod@example.com"
-      environment = "production"
-    }
   }
 
   validation {
     condition = alltrue([
       for k, v in var.spoke_accounts :
-      contains(["dev", "staging", "prod"], k)
+      contains(["dev"], k)
     ])
-    error_message = "spoke_accounts keys must be one of: dev, staging, prod."
+    error_message = "spoke_accounts keys must be: dev."
   }
 }
 
@@ -96,9 +88,7 @@ resource "aws_organizations_organization" "root" {
 #   Root
 #   ├── Core-Infra     (Hub account: networking, security tooling, shared services)
 #   └── Workloads      (Parent OU for all application environments)
-#       ├── Dev
-#       ├── Staging
-#       └── Prod
+#       └── Dev
 
 resource "aws_organizations_organizational_unit" "core_infra" {
   name      = "Core-Infra"
@@ -125,20 +115,6 @@ resource "aws_organizations_organizational_unit" "workloads_dev" {
   tags = { Environment = "development" }
 }
 
-resource "aws_organizations_organizational_unit" "workloads_staging" {
-  name      = "Staging"
-  parent_id = aws_organizations_organizational_unit.workloads.id
-
-  tags = { Environment = "staging" }
-}
-
-resource "aws_organizations_organizational_unit" "workloads_prod" {
-  name      = "Prod"
-  parent_id = aws_organizations_organizational_unit.workloads.id
-
-  tags = { Environment = "production" }
-}
-
 # ── MEMBER ACCOUNTS ────────────────────────────────────────────────────────────
 
 resource "aws_organizations_account" "hub" {
@@ -158,7 +134,7 @@ resource "aws_organizations_account" "hub" {
   lifecycle {
     # Account closure is an irreversible 90-day process initiated through the
     # AWS console. Terraform destroy must never trigger it automatically.
-    prevent_destroy = true
+    #prevent_destroy = true
 
     # role_name is immutable after account creation; suppress drift detection.
     ignore_changes = [role_name]
@@ -174,9 +150,7 @@ resource "aws_organizations_account" "hub" {
 # This local keeps the for_each resource below clean and extensible.
 locals {
   spoke_ou_map = {
-    dev     = aws_organizations_organizational_unit.workloads_dev.id
-    staging = aws_organizations_organizational_unit.workloads_staging.id
-    prod    = aws_organizations_organizational_unit.workloads_prod.id
+    dev = aws_organizations_organizational_unit.workloads_dev.id
   }
 }
 
@@ -191,7 +165,7 @@ resource "aws_organizations_account" "spokes" {
   iam_user_access_to_billing = "ALLOW"
 
   lifecycle {
-    prevent_destroy = true
+    #prevent_destroy = true
     ignore_changes  = [role_name]
   }
 

@@ -1,0 +1,18 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# terraform.tfvars.example — oidc
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit with your values
+#   terraform init
+#   terraform apply
+# ══════════════════════════════════════════════════════════════════════════════
+
+# GitHub organization or username that owns the repository.
+github_org = "your-github-org"
+
+# GitHub repository name (without the org prefix).
+github_repo = "your-repo-name"
+
+# AWS region — should match the rest of your infrastructure.
+primary_region = "us-east-1"

@@ -39,12 +39,4 @@ spoke_accounts = {
     email       = "aws+spoke-dev@yourcompany.com"
     environment = "development"
   }
-  staging = {
-    email       = "aws+spoke-staging@yourcompany.com"
-    environment = "staging"
-  }
-  prod = {
-    email       = "aws+spoke-prod@yourcompany.com"
-    environment = "production"
-  }
 }

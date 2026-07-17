@@ -122,7 +122,7 @@ output "github_actions_workflow_snippet" {
     #     uses: aws-actions/configure-aws-credentials@v4
     #     with:
     #       role-to-assume: ${aws_iam_role.github_actions_deploy.arn}
-    #       role-session-name: GitHubActions-${{ github.run_id }}
+    #       role-session-name: GitHubActions-$${{ github.run_id }}
     #       aws-region: ${var.primary_region}
     #
     #   - name: Terraform Init

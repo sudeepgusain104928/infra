@@ -1,0 +1,114 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# WORKFLOW: test-oidc.yml
+#
+# Validates the OIDC trust chain for the management account role created by
+# the oidc/ Terraform layer. No long-lived AWS credentials are used.
+#
+# What it tests:
+#   1. GitHub can request an OIDC JWT from token.actions.githubusercontent.com
+#   2. AWS accepts the JWT and issues short-lived credentials via
+#      sts:AssumeRoleWithWebIdentity
+#   3. The assumed identity lands in the expected account
+#   4. The assumed role name matches the expected pattern
+#
+# Required GitHub repository variables (Settings → Secrets and variables →
+# Actions → Variables):
+#   OIDC_ROLE_ARN   — from `terraform output -raw deploy_role_arn` in oidc/
+#   AWS_REGION      — e.g., us-east-1 (optional, defaults to us-east-1)
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: Test OIDC Authentication
+
+on:
+  push:
+    paths:
+      - "oidc/**"
+      - ".github/workflows/test-oidc.yml"
+
+  pull_request:
+    paths:
+      - "oidc/**"
+      - ".github/workflows/test-oidc.yml"
+
+  # Manual trigger for on-demand verification after terraform apply.
+  workflow_dispatch:
+
+concurrency:
+  group: test-oidc-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write  # Required to request the OIDC JWT from GitHub
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB: OIDC authentication test
+  # Assumes the role created by the oidc/ Terraform layer and verifies
+  # the resulting caller identity.
+  # ════════════════════════════════════════════════════════════════════════════
+  test-oidc:
+    name: OIDC Authentication Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        id: aws-auth
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+          role-session-name: OIDCTest-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify caller identity
+        id: verify
+        run: |
+          IDENTITY=$(aws sts get-caller-identity --output json)
+          echo "Identity: $IDENTITY"
+
+          ACCOUNT_ID=$(echo "$IDENTITY" | jq -r '.Account')
+          ROLE_ARN=$(echo "$IDENTITY"   | jq -r '.Arn')
+
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "role_arn=$ROLE_ARN"     >> "$GITHUB_OUTPUT"
+
+          # Extract expected account from the role ARN variable itself.
+          # arn:aws:iam::<account>:role/<name>  →  field 5 (0-indexed) after splitting on :
+          EXPECTED_ACCOUNT=$(echo "${{ vars.OIDC_ROLE_ARN }}" | cut -d: -f5)
+
+          if [ "$ACCOUNT_ID" != "$EXPECTED_ACCOUNT" ]; then
+            echo "::error::Assumed role landed in wrong account: got $ACCOUNT_ID, expected $EXPECTED_ACCOUNT"
+            exit 1
+          fi
+
+          echo "::notice::OIDC OK — Account: $ACCOUNT_ID | Role: $ROLE_ARN"
+
+      - name: Verify role name
+        run: |
+          ROLE_ARN="${{ steps.verify.outputs.role_arn }}"
+          if [[ "$ROLE_ARN" != *"GitHubActionsOIDCDeploy"* ]]; then
+            echo "::error::Unexpected role assumed: $ROLE_ARN"
+            exit 1
+          fi
+          echo "::notice::Role name assertion passed."
+
+      - name: Write step summary
+        if: always()
+        run: |
+          ACCOUNT="${{ steps.verify.outputs.account_id }}"
+          ROLE="${{ steps.verify.outputs.role_arn }}"
+          AUTH="${{ steps.aws-auth.outcome }}"
+          VERIFY="${{ steps.verify.outcome }}"
+
+          echo "## OIDC Authentication Test"      >> "$GITHUB_STEP_SUMMARY"
+          echo ""                                  >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step              | Result    |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------------------|-----------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| AWS auth (OIDC)   | $AUTH     |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Identity verified | $VERIFY   |" >> "$GITHUB_STEP_SUMMARY"
+          echo ""                                  >> "$GITHUB_STEP_SUMMARY"
+          echo "**Account:** \`$ACCOUNT\`"         >> "$GITHUB_STEP_SUMMARY"
+          echo "**Role:**    \`$ROLE\`"             >> "$GITHUB_STEP_SUMMARY"

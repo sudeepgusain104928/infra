@@ -117,9 +117,6 @@ resource "aws_kms_key" "terraform_state" {
   description             = "CMK for Terraform state S3 bucket encryption in the Hub account."
   deletion_window_in_days = 30
   enable_key_rotation     = true
-  # key_rotation_period_in_days defaults to 365 (annual) when unset.
-  # Set to a shorter value (e.g., 90) if required by security policy.
-  key_rotation_period_in_days = 365
 
   # The key policy is the primary access control for KMS.
   # Unlike IAM, if no key policy grants access, NO principal can use the key —
@@ -273,9 +270,9 @@ resource "aws_s3_bucket" "terraform_state" {
   # catastrophic event that requires manual recovery. This lifecycle rule
   # ensures 'terraform destroy' on this module fails gracefully with an error
   # rather than deleting the bucket.
-  lifecycle {
-    prevent_destroy = true
-  }
+  #lifecycle {
+    #prevent_destroy = true
+  #}
 
   tags = {
     Name    = var.state_bucket_name
@@ -531,13 +528,13 @@ resource "aws_dynamodb_table" "terraform_locks" {
   }
 
   # Protect from accidental destroy (same reasoning as state bucket).
-  lifecycle {
-    prevent_destroy = true
-  }
+  #lifecycle {
+    #prevent_destroy = true
+  #}
 
   tags = {
     Name    = var.lock_table_name
-    Purpose = "Terraform state locking — prevents concurrent applies"
+    Purpose = "Terraform state locking - prevents concurrent applies"
   }
 }
 

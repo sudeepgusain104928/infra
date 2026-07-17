@@ -51,16 +51,6 @@ output "ou_workloads_dev_id" {
   value       = aws_organizations_organizational_unit.workloads_dev.id
 }
 
-output "ou_workloads_staging_id" {
-  description = "OU ID of the Workloads/Staging organizational unit."
-  value       = aws_organizations_organizational_unit.workloads_staging.id
-}
-
-output "ou_workloads_prod_id" {
-  description = "OU ID of the Workloads/Prod organizational unit."
-  value       = aws_organizations_organizational_unit.workloads_prod.id
-}
-
 # ── Member Account IDs ─────────────────────────────────────────────────────────
 
 output "hub_account_id" {
