@@ -1,0 +1,50 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# terraform.tfvars.example — 1-organization-root
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit terraform.tfvars with your real values
+#   terraform plan -out=tfplan
+#   terraform apply tfplan
+#
+# NEVER commit terraform.tfvars to version control if it contains real
+# account IDs or email addresses. Add it to .gitignore.
+# This .example file is safe to commit.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── REQUIRED ───────────────────────────────────────────────────────────────────
+
+# NOTE: root_account_id is no longer a variable.
+# Terraform auto-detects it via sts:GetCallerIdentity (data.aws_caller_identity).
+# Just ensure your AWS CLI is authenticated to the Root account before running.
+
+# Unique root email for the Hub (Shared Services) account.
+# Must not be used by any existing AWS account globally.
+# Tip: use plus-addressing so all AWS mail routes to one inbox:
+#   aws+hub@yourcompany.com → your normal inbox
+hub_account_email = "aws+hub@yourcompany.com"
+
+# ── OPTIONAL (defaults shown) ──────────────────────────────────────────────────
+
+# The single AWS region where all workloads are permitted to run.
+# This value is enforced via the DenyNonPrimaryRegions SCP.
+# Change only if your primary operations region is not us-east-1.
+primary_region = "us-east-1"
+
+# Map of spoke accounts to create.
+# Keys must be: dev | staging | prod
+# Each email must be globally unique across all AWS accounts.
+spoke_accounts = {
+  dev = {
+    email       = "aws+spoke-dev@yourcompany.com"
+    environment = "development"
+  }
+  staging = {
+    email       = "aws+spoke-staging@yourcompany.com"
+    environment = "staging"
+  }
+  prod = {
+    email       = "aws+spoke-prod@yourcompany.com"
+    environment = "production"
+  }
+}

@@ -1,0 +1,63 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# terraform.tfvars.example — 2-hub-bootstrap
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit terraform.tfvars with your real values
+#   terraform plan -out=tfplan
+#   terraform apply tfplan
+#
+# VALUES TO COPY FROM 1-organization-root OUTPUTS:
+#   terraform -chdir=../1-organization-root output hub_account_id
+#   terraform -chdir=../1-organization-root output organization_id
+#
+# NEVER commit terraform.tfvars to version control.
+# This .example file is safe to commit.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── REQUIRED ───────────────────────────────────────────────────────────────────
+
+# Account ID of the Hub (Shared Services) account.
+# This is the ONLY value still needed as a variable. It is required at provider
+# initialization time (for the STS assume_role block) before data sources run.
+#
+# All other cross-layer values (organization_id, etc.) are read automatically
+# from ../1-organization-root/terraform.tfstate via terraform_remote_state.
+#
+# Get it from Layer 1 output:
+#   terraform -chdir=../1-organization-root output -raw hub_account_id
+hub_account_id = "111122223333"
+
+# organization_id is NO LONGER a variable — sourced from terraform_remote_state.
+
+# ── GITHUB OIDC — prefer environment variables over this file ─────────────────
+#
+# These values are not sensitive but belong in your CI/CD environment config,
+# not in a file. Set them as environment variables instead:
+#
+#   export TF_VAR_github_org="your-github-org"
+#   export TF_VAR_github_repo="your-infrastructure-repo"
+#
+# In GitHub Actions, set them as repository variables (not secrets):
+#   Settings → Secrets and variables → Actions → Variables
+#   TF_VAR_github_org  = "your-github-org"
+#   TF_VAR_github_repo = "your-infrastructure-repo"
+#
+# Uncomment below ONLY for local one-off runs where env vars aren't set:
+# github_org  = "your-github-org"
+# github_repo = "your-infrastructure-repo"
+
+# ── OPTIONAL (defaults shown) ──────────────────────────────────────────────────
+
+# Globally unique name for the Terraform state S3 bucket.
+# S3 bucket names are globally unique across ALL AWS accounts worldwide.
+# Recommended pattern: tf-state-<company>-<environment>-<random-suffix>
+state_bucket_name = "tf-state-yourcompany-hub-20240101"
+
+# Name for the DynamoDB state locking table.
+# Scoped to the Hub account so no global uniqueness required.
+lock_table_name = "terraform-state-locks"
+
+# AWS region for the state bucket and DynamoDB table.
+# Should match primary_region in 1-organization-root.
+primary_region = "us-east-1"

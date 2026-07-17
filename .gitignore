@@ -1,0 +1,35 @@
+# ── Terraform state ───────────────────────────────────────────────────────────
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+
+# ── Terraform plans ───────────────────────────────────────────────────────────
+tfplan
+*.tfplan
+
+# ── Terraform working directories ─────────────────────────────────────────────
+**/.terraform/
+.terraform.lock.hcl
+
+# ── Sensitive variable files ──────────────────────────────────────────────────
+*.tfvars
+!*.tfvars.example
+
+# ── Crash logs ────────────────────────────────────────────────────────────────
+crash.log
+crash.*.log
+
+# ── Override files (local-only tweaks) ────────────────────────────────────────
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
