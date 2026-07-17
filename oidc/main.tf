@@ -80,25 +80,21 @@ data "aws_iam_policy_document" "github_actions_trust" {
       identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
     }
 
-    # Audience must be sts.amazonaws.com (GitHub's default when targeting AWS).
+    # Audience must be sts.amazonaws.com — this is what configure-aws-credentials
+    # requests by default when calling getIDToken().
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
 
-    # Allow any ref (branch, tag, PR) within the configured repository.
+    # Scope to this org/repo across any ref (branch, tag, PR).
+    # The sub claim already encodes the owner, so this single condition is
+    # sufficient — no separate repository_owner check needed.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values   = ["repo:${var.github_org}/${var.github_repo}:*"]
-    }
-
-    # Bind to the specific GitHub organization to prevent token confusion attacks.
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:repository_owner"
-      values   = [var.github_org]
     }
   }
 }
