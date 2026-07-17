@@ -68,6 +68,34 @@ jobs:
           fi
           echo "::notice::OIDC_ROLE_ARN = ${{ vars.OIDC_ROLE_ARN }}"
 
+      - name: Decode OIDC token claims (debug)
+        run: |
+          # Fetch a GitHub OIDC token and decode its payload (claims).
+          # This shows exactly what AWS STS will receive, so we can compare
+          # against the role's trust policy conditions.
+          TOKEN=$(curl -sSf \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+            | jq -r '.value')
+
+          # Decode the JWT payload (middle segment, base64url-encoded).
+          # Add padding if needed, then decode.
+          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2)
+          PADDED="${PAYLOAD}$(printf '%0.s=' $((4 - ${#PAYLOAD} % 4)))"
+          echo "--- OIDC Token Claims ---"
+          echo "$PADDED" | base64 -d 2>/dev/null | jq '{
+            iss,
+            aud,
+            sub,
+            repository,
+            repository_owner,
+            ref,
+            event_name: .event_name,
+            workflow
+          }'
+          echo "-------------------------"
+          echo "Trust policy expects sub like: repo:${{ vars.OIDC_ROLE_ARN && 'repo pattern from tfvars' }}"
+
       - name: Configure AWS credentials via OIDC
         id: aws-auth
         uses: aws-actions/configure-aws-credentials@v4
